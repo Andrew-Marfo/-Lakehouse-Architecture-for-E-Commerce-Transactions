@@ -1,0 +1,59 @@
+{
+    "Comment": "E-Commerce ETL Pipeline",
+    "StartAt": "ProcessProducts",
+    "States": {
+      "ProcessProducts": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::glue:startJobRun.sync",
+        "Parameters": {
+          "JobName": "product_etl_job",
+          "Arguments": {
+            "--bucket_name": "ecommerce-lakehouse"
+          }
+        },
+        "Next": "ProcessOrders"
+      },
+      "ProcessOrders": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::glue:startJobRun.sync",
+        "Parameters": {
+          "JobName": "orders_etl_job",
+          "Arguments": {
+            "--bucket_name": "ecommerce-lakehouse"
+          }
+        },
+        "Next": "ProcessOrderItems"
+      },
+      "ProcessOrderItems": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::glue:startJobRun.sync",
+        "Parameters": {
+          "JobName": "order_items_etl_job",
+          "Arguments": {
+            "--bucket_name": "ecommerce-lakehouse"
+          }
+        },
+        "Next": "UpdateGlueCatalog"
+      },
+      "UpdateGlueCatalog": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::glue:startCrawler.sync",
+        "Parameters": {
+          "Name": "lakehouse-crawler"
+        },
+        "Next": "ValidateData"
+      },
+      "ValidateData": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::athena:startQueryExecution.sync",
+        "Parameters": {
+          "QueryString": "SELECT COUNT(*) FROM lakehouse_dwh.orders WHERE date = '2025-04-01'",
+          "WorkGroup": "primary",
+          "ResultConfiguration": {
+            "OutputLocation": "s3://ecommerce-lakehouse/athena-results/"
+          }
+        },
+        "End": true
+      }
+    }
+  }
