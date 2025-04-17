@@ -60,8 +60,8 @@ try:
     deduped_count = deduped_df.count()
     logger.info("Number of records after deduplication: %d", deduped_count)
 
-    # Write to Delta table using merge/upsert (no partitioning for products)
-    logger.info("Writing data to Delta table: %s", delta_path)
+    # Write to Delta table using merge/upsert, partitioned by department_id
+    logger.info("Writing data to Delta table: %s, partitioned by department_id", delta_path)
     if DeltaTable.isDeltaTable(spark, delta_path):
         logger.info("Delta table exists, performing merge/upsert")
         delta_table = DeltaTable.forPath(spark, delta_path)
@@ -71,7 +71,7 @@ try:
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
     else:
         logger.info("No existing Delta table, creating new one")
-        deduped_df.write.format("delta").mode("overwrite").save(delta_path)
+        deduped_df.write.format("delta").mode("overwrite").partitionBy("department_id").save(delta_path)
 
     # Archive the raw files
     logger.info("Archiving raw files")
