@@ -6,8 +6,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from delta.tables import DeltaTable
-from utils.validation import validate_dataframe
-from utils.s3_utils import move_files
+from validation import validate_dataframe
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType
 
 # Set up logging
@@ -72,10 +71,6 @@ try:
     else:
         logger.info("No existing Delta table, creating new one")
         deduped_df.write.format("delta").mode("overwrite").partitionBy("department_id").save(delta_path)
-
-    # Archive the raw files
-    logger.info("Archiving raw files")
-    move_files(bucket_name, "raw/products/", "archived/products/")
 
     # Log job completion
     logger.info("Glue job completed successfully")
