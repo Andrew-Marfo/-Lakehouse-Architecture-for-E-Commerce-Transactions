@@ -3,9 +3,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, TimestampType
 from code.glue_scripts.order_items_etl import deduplicate_data
 
+
 @pytest.fixture(scope="session")
 def spark():
     return SparkSession.builder.appName("TestOrderItemsETL").getOrCreate()
+
 
 def test_deduplicate_data(spark):
     # Define schema

@@ -7,6 +7,7 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client('s3')
 
+
 def move_files(bucket_name, source_prefix, dest_prefix):
     """Move files from source_prefix to dest_prefix in the specified S3 bucket and return the number of files moved."""
     try:
@@ -28,7 +29,9 @@ def move_files(bucket_name, source_prefix, dest_prefix):
 
             # Construct the destination key
             dest_key = source_key.replace(source_prefix, dest_prefix, 1)
-            logger.info(f"Moving s3://{bucket_name}/{source_key} to s3://{bucket_name}/{dest_key}")
+            logger.info(
+                f"Moving s3://{bucket_name}/{source_key} to s3://{bucket_name}/{dest_key}"
+            )
 
             # Copy the file to the destination
             copy_source = {'Bucket': bucket_name, 'Key': source_key}
@@ -47,6 +50,7 @@ def move_files(bucket_name, source_prefix, dest_prefix):
     except Exception as e:
         logger.error(f"Error moving files from {source_prefix} to {dest_prefix}: {str(e)}")
         raise
+
 
 def lambda_handler(event, context):
     """Lambda handler to archive files for products, orders, and order_items, and log the number of files moved."""
