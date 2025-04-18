@@ -41,9 +41,20 @@ def test_etl_pipeline(spark, s3_client, tmp_path):
     delta_order_items = str(tmp_path / 'lakehouse-dwh/order_items')
 
     # Create sample data
-    products_data = "product_id,department_id,department,product_name\n1,101,Electronics,Laptop\n1,101,Electronics,Laptop\n2,102,Books,Novel"
-    orders_data = "order_num,order_id,user_id,order_timestamp,total_amount,date\n1,1001,501,2025-04-01 10:00:00,199.99,2025-04-01\n1,1001,501,2025-04-01 10:00:00,199.99,2025-04-01\n2,1002,502,2025-04-01 11:00:00,49.99,2025-04-01"
-    order_items_data = "id,order_id,user_id,days_since_prior_order,product_id,add_to_cart_order,reordered,order_timestamp,date\n1,1001,501,30,1,1,0,2025-04-01 10:00:00,2025-04-01\n1,1001,501,30,1,1,0,2025-04-01 10:00:00,2025-04-01\n2,1002,502,15,2,2,1,2025-04-01 11:00:00,2025-04-01"
+    products_data = """product_id,department_id,department,product_name
+    1,101,Electronics,Laptop
+    1,101,Electronics,Laptop
+    2,102,Books,Novel"""
+    orders_data = """order_num,order_id,user_id,order_timestamp,total_amount,date
+    1,1001,501,2025-04-01 10:00:00,199.99,2025-04-01
+    1,1001,501,2025-04-01 10:00:00,199.99,2025-04-01
+    2,1002,502,2025-04-01 11:00:00,49.99,2025-04-01"""
+    order_items_data = (
+        "id,order_id,user_id,days_since_prior_order,product_id,add_to_cart_order,reordered,order_timestamp,date\n"
+        "1,1001,501,30,1,1,0,2025-04-01 10:00:00,2025-04-01\n"
+        "1,1001,501,30,1,1,0,2025-04-01 10:00:00,2025-04-01\n"
+        "2,1002,502,15,2,2,1,2025-04-01 11:00:00,2025-04-01"
+    )
 
     # Upload sample data to mocked S3
     s3_client.put_object(Bucket=bucket_name, Key=raw_products, Body=products_data)
@@ -52,21 +63,37 @@ def test_etl_pipeline(spark, s3_client, tmp_path):
 
     # Process products
     products_df = spark.read.schema(products_schema).csv(f"s3://{bucket_name}/{raw_products}", header=True)
-    validated_products = validate_dataframe(products_df, products_schema, "product_id", ["product_id", "department_id", "department", "product_name"], f"s3://{bucket_name}/{rejected_products}")
+    validated_products = validate_dataframe(
+        products_df, 
+        products_schema, 
+        "product_id", 
+        ["product_id", "department_id", "department", "product_name"], 
+        f"s3://{bucket_name}/{rejected_products}")
     deduped_products = deduplicate_data(validated_products, "product_id")
     deduped_products.write.format("delta").mode("overwrite").partitionBy("department_id").save(delta_products)
     assert deduped_products.count() == 2
 
     # Process orders
     orders_df = spark.read.schema(orders_schema).csv(f"s3://{bucket_name}/{raw_orders}", header=True)
-    validated_orders = validate_dataframe(orders_df, orders_schema, "order_id", ["order_num", "order_id", "user_id", "order_timestamp", "total_amount", "date"], f"s3://{bucket_name}/{rejected_orders}")
+    validated_orders = validate_dataframe(
+        orders_df, 
+        orders_schema, 
+        "order_id", 
+        ["order_num", "order_id", "user_id", "order_timestamp", "total_amount", "date"], 
+        f"s3://{bucket_name}/{rejected_orders}")
     deduped_orders = orders_deduplicate(validated_orders, "order_id")
     deduped_orders.write.format("delta").mode("overwrite").partitionBy("date").save(delta_orders)
     assert deduped_orders.count() == 2
 
     # Process order_items
     order_items_df = spark.read.schema(order_items_schema).csv(f"s3://{bucket_name}/{raw_order_items}", header=True)
-    validated_order_items = validate_dataframe(order_items_df, order_items_schema, "id", ["id", "order_id", "user_id", "product_id", "add_to_cart_order", "reordered", "order_timestamp", "date"], f"s3://{bucket_name}/{rejected_order_items}")
+    validated_order_items = validate_dataframe(
+        order_items_df, 
+        order_items_schema, 
+        "id", 
+        ["id", "order_id", "user_id", "product_id", "add_to_cart_order", "reordered", "order_timestamp", "date"], 
+        f"s3://{bucket_name}/{rejected_order_items}"
+)
     # Mock referential integrity by assuming orders and products exist
     deduped_order_items = order_items_deduplicate(validated_order_items, "id")
     deduped_order_items.write.format("delta").mode("overwrite").partitionBy("date").save(delta_order_items)
@@ -79,3 +106,4 @@ def test_etl_pipeline(spark, s3_client, tmp_path):
     assert products_delta.count() == 2
     assert orders_delta.count() == 2
     assert order_items_delta.count() == 2
+    

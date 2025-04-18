@@ -53,3 +53,4 @@ def test_validate_dataframe(spark, s3_client):
     rejected_files = s3_client.list_objects_v2(Bucket='ecommerce-lakehouse', Prefix='rejected/orders/')
     assert 'Contents' in rejected_files  # Rejected records were written
     assert len(rejected_files['Contents']) > 0
+    

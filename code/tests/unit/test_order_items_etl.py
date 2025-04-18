@@ -44,3 +44,4 @@ def test_deduplicate_data(spark):
     # Assert
     assert deduped_df.count() == 2
     assert sorted(deduped_df.collect()) == sorted(expected_df.collect())
+    

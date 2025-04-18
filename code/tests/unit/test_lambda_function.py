@@ -31,3 +31,4 @@ def test_move_files(s3_client):
     # Verify source files remain (since delete is commented out)
     raw_objects = s3_client.list_objects_v2(Bucket='ecommerce-lakehouse', Prefix='raw/products/')
     assert len(raw_objects.get('Contents', [])) == 2
+    
