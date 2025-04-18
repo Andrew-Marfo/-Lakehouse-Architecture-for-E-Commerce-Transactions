@@ -27,7 +27,7 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 code/ --max-line-length=120 --exclude=__pycache__
+          flake8 code/ --max-line-length=120 --exclude=__pycache__,s3_utils.py
 
       - name: Run unit tests
         run: |

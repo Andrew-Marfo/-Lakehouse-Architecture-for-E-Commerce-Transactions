@@ -5,9 +5,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, TimestampType
 from code.utils.validation import validate_dataframe
 
+
 @pytest.fixture(scope="session")
 def spark():
     return SparkSession.builder.appName("TestValidation").getOrCreate()
+
 
 @pytest.fixture
 def s3_client():
@@ -15,6 +17,7 @@ def s3_client():
         s3 = boto3.client('s3', region_name='eu-west-1')
         s3.create_bucket(Bucket='ecommerce-lakehouse', CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
         yield s3
+
 
 def test_validate_dataframe(spark, s3_client):
     # Define schema

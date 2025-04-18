@@ -1,6 +1,5 @@
 import sys
 import logging
-from awsglue.transforms import *
 from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
@@ -57,7 +56,8 @@ try:
     logger.info("Total number of records in the dataset: %d", record_count)
 
     # Validate the data (null checks, timestamps, schema enforcement)
-    required_columns = ["id", "order_id", "user_id", "product_id", "add_to_cart_order", "reordered", "order_timestamp", "date"]
+    required_columns = ["id", "order_id", "user_id", "product_id", "add_to_cart_order", "reordered",
+                        "order_timestamp", "date"]
     logger.info("Validating order_items data for nulls and timestamps")
     validated_df = validate_dataframe(order_items_df, order_items_schema, "id", required_columns, rejected_path)
 
@@ -74,7 +74,9 @@ try:
     if invalid_order_ids.count() > 0:
         logger.warning("Found %d order_items records with invalid order_id", invalid_order_ids.count())
         invalid_order_ids.select([col("oi." + c) for c in validated_df.columns]).write.mode("append").csv(rejected_path)
-    valid_order_items = order_items_with_orders.filter(col("o.user_id").isNotNull()).select([col("oi." + c) for c in validated_df.columns])
+    valid_order_items = order_items_with_orders.filter(col("o.user_id").isNotNull()).select(
+        [col("oi." + c) for c in validated_df.columns]
+    )
 
     # Check referential integrity for product_id
     logger.info("Checking referential integrity for product_id in order_items")
@@ -83,7 +85,9 @@ try:
     if invalid_product_ids.count() > 0:
         logger.warning("Found %d order_items records with invalid product_id", invalid_product_ids.count())
         invalid_product_ids.select([col("oi." + c) for c in valid_order_items.columns]).write.mode("append").csv(rejected_path)
-    valid_order_items_final = order_items_with_products.filter(col("p.department_id").isNotNull()).select([col("oi." + c) for c in valid_order_items.columns])
+    valid_order_items_final = order_items_with_products.filter(col("p.department_id").isNotNull()).select(
+        [col("oi." + c) for c in valid_order_items.columns]
+    )
 
     # Deduplicate based on id
     logger.info("Deduplicating data based on id")

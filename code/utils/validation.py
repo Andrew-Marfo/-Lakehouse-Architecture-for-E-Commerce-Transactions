@@ -1,4 +1,5 @@
 import logging
+from functools import reduce
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 from pyspark.sql.types import StructType
@@ -6,6 +7,7 @@ from pyspark.sql.types import StructType
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('validation')
+
 
 def validate_dataframe(df: DataFrame, schema: StructType, primary_key: str, required_columns: list, rejected_path: str) -> DataFrame:
     """
@@ -19,7 +21,7 @@ def validate_dataframe(df: DataFrame, schema: StructType, primary_key: str, requ
         logger.info("Enforcing schema on DataFrame")
         for field in schema.fields:
             df = df.withColumn(field.name, col(field.name).cast(field.dataType))
-        
+
         # Check for schema mismatches (columns that can't be cast will result in nulls)
         schema_mismatch_df = df.filter(
             reduce(lambda x, y: x | y, [col(field.name).isNull() for field in schema.fields if field.name in required_columns])
@@ -58,5 +60,3 @@ def validate_dataframe(df: DataFrame, schema: StructType, primary_key: str, requ
     except Exception as e:
         logger.error("Error during validation: %s", str(e))
         raise
-
-from functools import reduce
