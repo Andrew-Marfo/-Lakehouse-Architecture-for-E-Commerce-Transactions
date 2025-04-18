@@ -44,9 +44,7 @@ def move_files(bucket_name, source_prefix, dest_prefix):
             moved_files_count += 1
 
         # Log the number of files moved for this dataset
-        logger.info(
-            f"Moved {moved_files_count} files from s3://{bucket_name}/{source_prefix} "
-            f"to s3://{bucket_name}/{dest_prefix}")
+        logger.info(f"Moved {moved_files_count} files from s3://{bucket_name}/{source_prefix} to s3://{bucket_name}/{dest_prefix}")
         return moved_files_count
 
     except Exception as e:
@@ -91,4 +89,3 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': f"Error: {str(e)}"
         }
-    

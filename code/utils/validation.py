@@ -9,13 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('validation')
 
 
-def validate_dataframe(
-    df: DataFrame, 
-    schema: StructType, 
-    primary_key: str, 
-    required_columns: list, 
-    rejected_path: str
-) -> DataFrame:
+def validate_dataframe(df: DataFrame, schema: StructType, primary_key: str, required_columns: list, rejected_path: str) -> DataFrame:
     """
     Validate the DataFrame: schema enforcement, null primary keys, required columns, valid timestamps.
     Write rejected records to S3.
@@ -30,10 +24,7 @@ def validate_dataframe(
 
         # Check for schema mismatches (columns that can't be cast will result in nulls)
         schema_mismatch_df = df.filter(
-            reduce(
-                lambda x, y: x | y, 
-                [col(field.name).isNull() for field in schema.fields if field.name in required_columns]
-            )
+            reduce(lambda x, y: x | y, [col(field.name).isNull() for field in schema.fields if field.name in required_columns])
         )
         if schema_mismatch_df.count() > 0:
             logger.warning("Found %d records with schema mismatches", schema_mismatch_df.count())

@@ -84,9 +84,7 @@ try:
     invalid_product_ids = order_items_with_products.filter(col("p.department_id").isNull())
     if invalid_product_ids.count() > 0:
         logger.warning("Found %d order_items records with invalid product_id", invalid_product_ids.count())
-        invalid_product_ids.select(
-            [col("oi." + c) for c in valid_order_items.columns]
-        ).write.mode("append").csv(rejected_path)
+        invalid_product_ids.select([col("oi." + c) for c in valid_order_items.columns]).write.mode("append").csv(rejected_path)
     valid_order_items_final = order_items_with_products.filter(col("p.department_id").isNotNull()).select(
         [col("oi." + c) for c in valid_order_items.columns]
     )
@@ -120,4 +118,3 @@ except Exception as e:
 finally:
     job.commit()
     logger.info("Job committed")
-    

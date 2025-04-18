@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  lint-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,10 +25,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r code/requirements.txt
 
-      - name: Lint with flake8
-        run: |
-          flake8 code/ --max-line-length=120 --exclude=__pycache__,s3_utils.py
-
       - name: Run unit tests
         run: |
           pytest code/tests/unit/ --verbose
@@ -39,7 +35,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code

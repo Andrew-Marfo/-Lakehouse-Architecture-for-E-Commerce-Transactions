@@ -81,4 +81,3 @@ except Exception as e:
 finally:
     job.commit()
     logger.info("Job committed")
-    
