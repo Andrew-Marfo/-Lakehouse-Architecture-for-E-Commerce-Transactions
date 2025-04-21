@@ -331,9 +331,3 @@ The project includes a GitHub Actions workflow for continuous integration and de
   - Check the Step Functions role for permissions to publish to SNS.
 - **Tests Failing**:
   - Resolve import errors in the GitHub Actions workflow by fixing the test execution environment.
-
----
-
-## Contact
-
-For questions or issues, contact the project maintainer at \[your-email@example.com\].
