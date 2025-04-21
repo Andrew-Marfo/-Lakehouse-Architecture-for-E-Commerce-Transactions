@@ -1,6 +1,12 @@
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, TimestampType
+import sys
+from unittest import mock
+sys.modules['awsglue'] = mock.MagicMock()
+sys.modules['awsglue.utils'] = mock.MagicMock()
+sys.modules['awsglue.context'] = mock.MagicMock()
+sys.modules['awsglue.job'] = mock.MagicMock()
 from src.glue_scripts.order_items_etl import deduplicate_data
 
 
