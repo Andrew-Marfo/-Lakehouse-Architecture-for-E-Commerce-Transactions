@@ -26,16 +26,18 @@ jobs:
           pip install -r code/requirements.txt
 
       - name: Run unit tests
+        working-directory: code
         env:
-          PYTHONPATH: $GITHUB_WORKSPACE
+          PYTHONPATH: .
         run: |
-          pytest code/tests/unit/ --verbose
+          pytest tests/unit/ --verbose
 
       - name: Run integration tests
+        working-directory: code
         env:
-          PYTHONPATH: $GITHUB_WORKSPACE
+          PYTHONPATH: .
         run: |
-          pytest code/tests/integration/ --verbose
+          pytest tests/integration/ --verbose
 
   deploy:
     runs-on: ubuntu-latest
