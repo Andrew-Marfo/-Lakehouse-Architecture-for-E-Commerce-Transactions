@@ -29,13 +29,13 @@ jobs:
         env:
           PYTHONPATH: ./code
         run: |
-          pytest tests/unit/ --verbose
+          pytest code/tests/unit/ --verbose
 
       - name: Run integration tests
         env:
           PYTHONPATH: ./code
         run: |
-          pytest tests/integration/ --verbose
+          pytest code/tests/integration/ --verbose
 
   deploy:
     runs-on: ubuntu-latest
