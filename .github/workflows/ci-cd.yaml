@@ -26,16 +26,14 @@ jobs:
           pip install -r code/requirements.txt
 
       - name: Run unit tests
-        working-directory: code
         env:
-          PYTHONPATH: .
+          PYTHONPATH: ./code
         run: |
           pytest tests/unit/ --verbose
 
       - name: Run integration tests
-        working-directory: code
         env:
-          PYTHONPATH: .
+          PYTHONPATH: ./code
         run: |
           pytest tests/integration/ --verbose
 

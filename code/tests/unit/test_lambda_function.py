@@ -1,4 +1,5 @@
 import boto3
+from code.lambda_function import move_files
 import pytest
 from moto import mock_s3
 from code.lambda_function import move_files
