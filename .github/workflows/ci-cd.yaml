@@ -25,24 +25,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r code/requirements.txt
 
-      - name: Debug directory structure and environment
-        run: |
-          pwd
-          ls -R .
-          echo $PYTHONPATH
-          python -c "import sys; print(sys.path)"
-
       - name: Run unit tests
         env:
           PYTHONPATH: ./code
         run: |
-          pytest code/tests/unit/ --verbose
+          pytest tests/unit/ --verbose
 
       - name: Run integration tests
         env:
           PYTHONPATH: ./code
         run: |
-          pytest code/tests/integration/ --verbose
+          pytest tests/integration/ --verbose
 
   deploy:
     runs-on: ubuntu-latest
