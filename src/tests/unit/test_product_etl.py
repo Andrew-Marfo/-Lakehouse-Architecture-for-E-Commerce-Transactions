@@ -3,14 +3,19 @@ import pandas as pd
 import sys
 from unittest import mock
 
-# Mock the awsglue module to prevent SparkContext creation
+# Mock SparkContext to prevent creation
+sys.modules['pyspark'] = mock.MagicMock()
+sys.modules['pyspark.context'] = mock.MagicMock()
+sys.modules['pyspark.context.SparkContext'] = mock.MagicMock()
+
+# Mock awsglue modules
 sys.modules['awsglue'] = mock.MagicMock()
 sys.modules['awsglue.utils'] = mock.MagicMock()
 sys.modules['awsglue.context'] = mock.MagicMock()
 sys.modules['awsglue.job'] = mock.MagicMock()
 
-# Mock the validate_dataframe function to avoid Spark dependencies
-with mock.patch('src.utils.validation.validate_dataframe', return_value=None) as mock_validate:
+# Mock validate_dataframe to return the input DataFrame
+with mock.patch('src.utils.validation.validate_dataframe', lambda df, *args, **kwargs: df):
     from src.glue_scripts.product_etl import deduplicate_data
 
 @pytest.fixture

@@ -4,13 +4,13 @@ import boto3
 from moto import mock_s3
 from unittest import mock
 
-# Mock Spark dependencies in validate_dataframe
-with mock.patch('pyspark.sql.DataFrame.filter', return_value=None) as mock_filter, \
-     mock.patch('pyspark.sql.DataFrame.count', return_value=0) as mock_count, \
-     mock.patch('pyspark.sql.DataFrame.write') as mock_write, \
-     mock.patch('pyspark.sql.DataFrame.na') as mock_na, \
-     mock.patch('pyspark.sql.DataFrame.select') as mock_select:
-    from src.utils.validation import validate_dataframe
+# Mock pyspark imports to prevent Spark-related errors
+sys.modules['pyspark'] = mock.MagicMock()
+sys.modules['pyspark.sql'] = mock.MagicMock()
+sys.modules['pyspark.sql.functions'] = mock.MagicMock()
+sys.modules['pyspark.sql.types'] = mock.MagicMock()
+
+from src.utils.validation import validate_dataframe
 
 @pytest.fixture
 def s3_client():
@@ -29,7 +29,7 @@ def sample_data():
     }
     return pd.DataFrame(data)
 
-# Mock schema for validation
+# Mock schema for validation (simplified for testing)
 schema = {
     "order_id": {"type": "int", "nullable": False},
     "user_id": {"type": "int", "nullable": False},
@@ -38,29 +38,51 @@ schema = {
 }
 
 def test_validate_dataframe(sample_data, s3_client, mocker):
-    # Mock Spark DataFrame methods to simulate validation
-    mocker.patch('src.utils.validation.DataFrame.filter', return_value=sample_data.iloc[1:])  # Simulate rejected records
-    mocker.patch('src.utils.validation.DataFrame.count', return_value=3)  # Simulate rejected count
-    mocker.patch('src.utils.validation.DataFrame.write')  # Mock S3 write
-    mocker.patch('src.utils.validation.DataFrame.na', return_value=sample_data)  # Mock na.drop
+    # Mock Spark DataFrame methods to simulate validation behavior
+    class MockDataFrame:
+        def __init__(self, df):
+            self.df = df
 
-    # Mock the Spark DataFrame creation (we'll use Pandas for testing)
+        def filter(self, condition):
+            # Simulate filtering for nulls and invalid timestamps using Pandas
+            if "isNull()" in str(condition):
+                column = str(condition).split('.')[0].split('(')[1]
+                return MockDataFrame(self.df[self.df[column].isna()])
+            elif "cast('timestamp')" in str(condition):
+                return MockDataFrame(self.df[~self.df['order_timestamp'].str.contains(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', regex=True)])
+            return self
+
+        def count(self):
+            return len(self.df)
+
+        def write(self):
+            class MockWrite:
+                def mode(self, mode):
+                    return self
+                def csv(self, path):
+                    pass
+            return MockWrite()
+
+        def na(self):
+            class MockNA:
+                def drop(self, subset):
+                    return MockDataFrame(self.df.dropna(subset=subset))
+            return MockNA()
+
+    # Mock DataFrame to use Pandas under the hood
+    mocker.patch('src.utils.validation.DataFrame', MockDataFrame)
+
     primary_key = "order_id"
     required_columns = ["order_id", "user_id", "order_timestamp", "date"]
     rejected_path = "s3://ecommerce-lakehouse/rejected/orders/"
 
-    # Simulate validation by manually applying some logic (since we're using Pandas)
-    # In a real Spark environment, this would be handled by validate_dataframe
-    validated_df = sample_data.dropna(subset=required_columns)  # Drop rows with nulls
-    validated_df = validated_df[validated_df['order_timestamp'].str.contains(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', regex=True)]  # Filter invalid timestamps
-    rejected_df = sample_data[~sample_data.index.isin(validated_df.index)]
-
-    # Call validate_dataframe (it will use the mocked methods)
-    result_df = validate_dataframe(validated_df, schema, primary_key, required_columns, rejected_path)
+    # Call validate_dataframe with the mocked DataFrame
+    input_df = MockDataFrame(sample_data)
+    validated_df = validate_dataframe(input_df, schema, primary_key, required_columns, rejected_path)
 
     # Check results
-    assert len(result_df) == 1  # Only the valid record remains
-    assert result_df.iloc[0]["order_id"] == 1
+    assert validated_df.count() == 1  # Only the valid record remains
+    assert validated_df.df.iloc[0]["order_id"] == 1
 
     # Verify rejected records in S3 (mocked)
     rejected_files = s3_client.list_objects_v2(Bucket='ecommerce-lakehouse', Prefix='rejected/orders/')
