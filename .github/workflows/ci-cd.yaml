@@ -20,10 +20,27 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Install general dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r src/requirements.txt
+
+      - name: Install Spark dependencies
+        run: |
+          pip install pyspark==3.3.1 delta-spark==2.1.0
+
+      - name: Debug directory structure and environment
+        run: |
+          pwd
+          ls -R .
+          echo $PYTHONPATH
+          python -c "import sys; print(sys.path)"
 
       - name: Run unit tests
         env:
