@@ -38,28 +38,52 @@ def sample_data():
     return pd.DataFrame(data)
 
 # Mock schema for validation (simplified for testing)
-schema = {
+schema_dict = {
     "order_id": {"type": "int", "nullable": False},
     "user_id": {"type": "int", "nullable": False},
     "order_timestamp": {"type": "timestamp", "nullable": False},
     "date": {"type": "string", "nullable": False}
 }
 
+# Mock StructType and StructField for schema
+class MockStructField:
+    def __init__(self, name, dataType):
+        self.name = name
+        self.dataType = dataType
+
+class MockStructType:
+    def __init__(self, fields):
+        self.fields = fields
+
+# Create a mocked schema
+mock_schema = MockStructType([
+    MockStructField(name, schema_dict[name]["type"])
+    for name in schema_dict
+])
+
 # Mock DataFrame class to simulate Spark DataFrame behavior with Pandas
 class MockDataFrame:
     def __init__(self, df):
         self.df = df
+
+    @property
+    def columns(self):
+        return list(self.df.columns)
 
     def withColumn(self, colName, col):
         # Simulate schema enforcement (no-op for Pandas in this test, as we're using Pandas types)
         return self
 
     def filter(self, condition):
-        # Simulate filtering for nulls and invalid timestamps using Pandas
-        if "isNull()" in str(condition):
-            column = str(condition).split('.')[0].split('(')[1]
-            return MockDataFrame(self.df[self.df[column].isna()])
-        elif "cast('timestamp')" in str(condition):
+        # Handle mocked col().isNull() and col().cast('timestamp').isNotNull()
+        condition_str = str(condition)
+        if "isNull()" in condition_str:
+            # Extract the column name from the mock's call history
+            col_call = sys.modules['pyspark.sql.functions'].col
+            if col_call.called:
+                column = col_call.call_args[0][0]  # Get the column name passed to col()
+                return MockDataFrame(self.df[self.df[column].isna()])
+        elif "cast('timestamp')" in condition_str:
             return MockDataFrame(self.df[~self.df['order_timestamp'].str.contains(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}', regex=True)])
         return self
 
@@ -85,7 +109,7 @@ def test_enforce_schema(sample_data, mocker):
     mocker.patch('src.utils.validation.DataFrame', MockDataFrame)
     
     input_df = MockDataFrame(sample_data)
-    result_df = enforce_schema(input_df, schema)
+    result_df = enforce_schema(input_df, mock_schema)
     
     # Since enforce_schema casts columns, and we're using Pandas, the DataFrame should remain unchanged
     # In a real Spark environment, this would cast columns to the defined types
@@ -100,7 +124,7 @@ def test_reject_schema_mismatches(sample_data, s3_client, mocker):
     rejected_path = "s3://ecommerce-lakehouse/rejected/orders/"
     
     input_df = MockDataFrame(sample_data)
-    result_df = reject_schema_mismatches(input_df, schema, required_columns, rejected_path)
+    result_df = reject_schema_mismatches(input_df, mock_schema, required_columns, rejected_path)
     
     # Schema mismatches are simulated by nulls in required columns
     # After dropping nulls in required columns, only rows with no nulls in required columns should remain
@@ -181,7 +205,7 @@ def test_validate_dataframe(sample_data, s3_client, mocker):
     rejected_path = "s3://ecommerce-lakehouse/rejected/orders/"
     
     input_df = MockDataFrame(sample_data)
-    result_df = validate_dataframe(input_df, schema, primary_key, required_columns, rejected_path)
+    result_df = validate_dataframe(input_df, mock_schema, primary_key, required_columns, rejected_path)
     
     # After all validations, only valid records should remain
     expected_df = sample_data[
