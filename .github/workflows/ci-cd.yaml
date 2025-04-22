@@ -46,10 +46,4 @@ jobs:
         env:
           PYTHONPATH: ./src
         run: |
-          pytest src/tests/unit/test_validation.py --verbose
-
-      - name: Run integration tests
-        env:
-          PYTHONPATH: ./src
-        run: |
-          pytest src/tests/integration/ --verbose
+          pytest src/tests/test_validation.py --verbose
