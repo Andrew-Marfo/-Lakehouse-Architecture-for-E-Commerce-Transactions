@@ -1,29 +1,55 @@
-# .github/workflows/ci.yml
-name: CI Pipeline
+name: E-Commerce ETL CI/CD
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
-          
-      - name: Install dependencies
+          python-version: '3.9'
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Install general dependencies
         run: |
-          sudo apt-get install openjdk-8-jdk -y
-          pip install pyspark==3.5.0 delta-spark==2.4.0 pytest==7.4.0
-          pip install -e .
-          
-      - name: Run tests
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+
+      - name: Install Spark dependencies
         run: |
-          export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-          pytest tests/ --cov=src --cov-report=xml
-          
-      - name: Upload coverage
-        uses: codecov/codecov-action@v1
+          pip install pyspark==3.3.1 delta-spark==2.1.0
+
+      - name: Debug directory structure and environment
+        run: |
+          pwd
+          ls -R .
+          echo $PYTHONPATH
+          python -c "import sys; print(sys.path)"
+
+      - name: Run validation unit tests
+        env:
+          PYTHONPATH: ./src
+        run: |
+          pytest src/tests/unit/test_validation.py --verbose
+
+      - name: Run integration tests
+        env:
+          PYTHONPATH: ./src
+        run: |
+          pytest src/tests/integration/ --verbose
