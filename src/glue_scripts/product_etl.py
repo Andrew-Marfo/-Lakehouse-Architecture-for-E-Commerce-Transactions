@@ -5,7 +5,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from delta.tables import DeltaTable
-from src.utils.validation import validate_dataframe
+from validation import validate_dataframe
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType
 
 # Set up logging
@@ -81,3 +81,4 @@ except Exception as e:
 finally:
     job.commit()
     logger.info("Job committed")
+    
